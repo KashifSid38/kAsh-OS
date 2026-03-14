@@ -75,6 +75,7 @@ make run
 - [RISC-V Architecture](docs/01-riscv-architecture.md) - Architecture reference
 - [RTOS Concepts](docs/02-rtos-concepts.md) - OS theory and concepts
 - [Development Setup](docs/03-development-setup.md) - Environment configuration
+- [MMU & Privilege Modes](docs/04-mmu-and-privilege-modes.md) - Virtual memory and user/kernel separation
 
 ## 🔗 Resources
 
