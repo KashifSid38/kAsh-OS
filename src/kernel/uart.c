@@ -1,5 +1,6 @@
 /*
  * kAsH-OS UART Driver
+ * Author: bitwizebard
  * 
  * UART driver for QEMU virt machine (16550 compatible)
  */

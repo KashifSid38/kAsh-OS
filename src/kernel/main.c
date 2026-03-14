@@ -1,5 +1,6 @@
 /*
  * kAsH-OS Kernel Main
+ * Author: bitwizebard
  * 
  * Main kernel entry point
  */

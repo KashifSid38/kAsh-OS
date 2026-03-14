@@ -99,4 +99,4 @@ This project is for educational purposes. MIT License.
 
 ## 👤 Author
 
-Learning project by [Your Name]
+Learning project by **bitwizebard**

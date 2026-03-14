@@ -1,5 +1,6 @@
 /*
  * kAsH-OS Linker Script
+ * Author: bitwizebard
  * Target: RISC-V RV32IMAC (QEMU virt machine)
  */
 

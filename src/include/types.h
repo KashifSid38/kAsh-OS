@@ -1,5 +1,6 @@
 /*
  * kAsH-OS Type Definitions
+ * Author: bitwizebard
  * 
  * Standard type definitions for the kernel.
  * Since we're bare-metal, we don't have stdint.h

@@ -1,5 +1,6 @@
 /*
  * kAsH-OS Startup Code
+ * Author: bitwizebard
  * Target: RISC-V RV32IMAC
  * 
  * This is the first code that runs after reset.
