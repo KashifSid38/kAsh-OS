@@ -1,0 +1,64 @@
+# =============================================================================
+# kAsH-OS .gitignore
+# =============================================================================
+
+# Build output
+build/
+*.o
+*.elf
+*.bin
+*.hex
+*.map
+*.asm
+*.lst
+
+# IDE and editor files
+.vscode/
+.cline_storage/
+*.swp
+*.swo
+*~
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Backup files
+*.bak
+*.orig
+*.save
+
+# Log files
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Debug files
+*.dSYM/
+
+# QEMU files
+*.qcow2
+*.img
+
+# Documentation build
+docs/_build/
+
+# Personal notes (use notes/ for tracked notes)
+scratch/
+personal/
+
+# Compiled Python
+*.pyc
+__pycache__/
+
+# Archive files
+*.tar
+*.tar.gz
+*.zip
+*.7z
