@@ -353,10 +353,10 @@ This document provides a detailed breakdown of the learning journey to build a R
 
 Update this section as you progress:
 
-- [ ] Phase 1 Complete - Date: ____
-- [ ] Phase 2 Complete - Date: ____
-- [ ] Phase 3 Complete - Date: ____
-- [ ] Phase 4 Complete - Date: ____
+- [x] Phase 1 Complete - Date: 2026-04-27 (AI-scaffolded: architecture docs, register reference)
+- [x] Phase 2 Complete - Date: 2026-04-27 (AI-scaffolded: Makefile, linker script, QEMU config — see SETUP.md for toolchain install)
+- [x] Phase 3 Complete - Date: 2026-04-27 (AI-scaffolded: startup.S, linker.ld, boot to kmain())
+- [x] Phase 4 Complete - Date: 2026-04-27 (AI-scaffolded: uart.c, kprintf, main.c, memory layout print)
 - [ ] Phase 5 Complete - Date: ____
 - [ ] Phase 6 Complete - Date: ____
 - [ ] Phase 7 Complete - Date: ____

@@ -5,7 +5,16 @@
 # =============================================================================
 
 # Toolchain configuration
+# Windows (Zephyr SDK 0.16.8):  CROSS_COMPILE=.../zephyr-sdk-0.16.8/riscv64-zephyr-elf/bin/riscv64-zephyr-elf-
+# macOS (brew):                  CROSS_COMPILE=riscv64-unknown-elf-
+# See SETUP.md for full install instructions.
+_ZEPHYR_GCC = C:\Users\mksiddi\zephyr-sdk-0.16.8\riscv64-zephyr-elf\bin\riscv64-zephyr-elf-gcc.exe
+_ZEPHYR_BIN = C:/Users/mksiddi/zephyr-sdk-0.16.8/riscv64-zephyr-elf/bin/riscv64-zephyr-elf-
+ifneq ($(wildcard $(_ZEPHYR_GCC)),)
+CROSS_COMPILE ?= $(_ZEPHYR_BIN)
+else
 CROSS_COMPILE ?= riscv64-unknown-elf-
+endif
 CC      = $(CROSS_COMPILE)gcc
 AS      = $(CROSS_COMPILE)as
 LD      = $(CROSS_COMPILE)ld
@@ -34,7 +43,7 @@ OBJ_S = $(patsubst $(SRC_DIR)/%.S,$(BUILD_DIR)/%.o,$(SRC_S))
 OBJ   = $(OBJ_S) $(OBJ_C)
 
 # Compiler flags
-ARCH_FLAGS = -march=rv32imac -mabi=ilp32
+ARCH_FLAGS = -march=rv32imac_zicsr -mabi=ilp32
 
 CFLAGS  = $(ARCH_FLAGS)
 CFLAGS += -mcmodel=medany
@@ -61,10 +70,12 @@ ASFLAGS += -g
 LDFLAGS  = -T linker.ld
 LDFLAGS += -nostdlib
 LDFLAGS += -nostartfiles
-LDFLAGS += --no-relax
+LDFLAGS += -Wl,--no-relax
 
 # QEMU configuration
-QEMU = qemu-system-riscv32
+# Override QEMU if the binary is not in PATH, e.g.:
+#   make run QEMU=/usr/local/bin/qemu-system-riscv32
+QEMU ?= $(shell which qemu-system-riscv32 2>/dev/null || echo /c/PROGRA~1/qemu/qemu-system-riscv32.exe)
 QEMU_FLAGS  = -machine virt
 QEMU_FLAGS += -cpu rv32
 QEMU_FLAGS += -m 128M
@@ -117,12 +128,16 @@ $(BUILD_DIR)/$(TARGET).bin: $(BUILD_DIR)/$(TARGET).elf
 # Run targets
 # =============================================================================
 
+# winpty bridges Git Bash's terminal with Windows console apps like QEMU
+WINPTY := $(shell which winpty 2>/dev/null)
+QEMU_RUN := $(if $(WINPTY),winpty $(QEMU),$(QEMU))
+
 # Run in QEMU
 run: $(BUILD_DIR)/$(TARGET).elf
 	@echo "Starting QEMU..."
 	@echo "Press Ctrl+A then X to exit"
 	@echo ""
-	$(QEMU) $(QEMU_FLAGS)
+	$(QEMU_RUN) $(QEMU_FLAGS)
 
 # Run QEMU with GDB server (stopped at start)
 debug: $(BUILD_DIR)/$(TARGET).elf
@@ -130,7 +145,7 @@ debug: $(BUILD_DIR)/$(TARGET).elf
 	@echo "Connect with: $(GDB) -ex 'target remote localhost:$(GDB_PORT)' $(BUILD_DIR)/$(TARGET).elf"
 	@echo "Press Ctrl+A then X to exit QEMU"
 	@echo ""
-	$(QEMU) $(QEMU_FLAGS) -s -S
+	$(QEMU_RUN) $(QEMU_FLAGS) -s -S
 
 # Connect GDB to running QEMU
 gdb: $(BUILD_DIR)/$(TARGET).elf
