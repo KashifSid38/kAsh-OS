@@ -3,6 +3,10 @@
 # Target: RISC-V RV32IMAC
 # Platform: QEMU virt machine
 # =============================================================================
+ifeq ($(OS),Windows_NT)
+    SHELL := C:/PROGRA~1/Git/usr/bin/bash.exe
+    .SHELLFLAGS := -c
+endif
 
 # Toolchain configuration
 # Windows (Zephyr SDK 0.16.8):  CROSS_COMPILE=.../zephyr-sdk-0.16.8/riscv64-zephyr-elf/bin/riscv64-zephyr-elf-

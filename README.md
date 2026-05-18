@@ -1,102 +1,49 @@
-# kAsH-OS: RISC-V Learning Operating System
+# kAsH-OS
 
-A bare-metal operating system for RISC-V architecture, designed as a learning project to understand RISC-V architecture and RTOS concepts in depth.
+A bare-metal RISC-V operating system built from scratch as a structured learning project. The goal is twofold: a working multitasking OS on QEMU (eventually ported to real RISC-V hardware), and the systems-engineering judgement to make good design decisions along the way.
 
-## 🎯 Project Goals
+This is not a polished product. It is a learning artifact. Expect mistakes, rewrites, and design notes that document why each choice was made (and sometimes unmade).
 
-1. **Understand RISC-V Architecture** - Registers, instruction set, privilege modes, memory management
-2. **Master RTOS Concepts** - Task scheduling, context switching, inter-task communication
-3. **Build a Functional RTOS** - From bootloader to a working multi-tasking system
-4. **Document Everything** - Create comprehensive notes for future reference
+## Status
 
-## 📁 Project Structure
+Early. The current codebase boots on QEMU `virt`, initializes a 16550 UART, prints a banner, and runs an echo loop. The trap handler decodes RISC-V exception codes but does not yet do anything useful with timer or external interrupts.
+
+This scaffold was AI-generated; Phase 0 is dedicated to re-deriving understanding of every line. See `docs/learning-roadmap.md` for the full plan and `GUIDE.md` for the operating principles that govern how I work through it.
+
+## Quick start
+
+See `SETUP.md` for toolchain installation (Windows + macOS).
+
+```bash
+make all      # Build the kernel ELF + binary
+make run      # Run in QEMU (Ctrl+A then X to exit)
+make debug    # Run in QEMU with GDB server
+make gdb      # Connect GDB to a running `make debug` session (in a second terminal)
+make clean    # Remove build artifacts
+make help     # List all targets
+```
+
+## Repository layout
 
 ```
 kAsH-OS/
-├── docs/                    # Documentation and learning notes
-│   ├── 01-riscv-architecture.md
-│   ├── 02-rtos-concepts.md
-│   ├── 03-development-setup.md
-│   └── learning-roadmap.md
-├── src/                     # Source code
-│   ├── boot/               # Bootloader and startup code
-│   ├── kernel/             # Kernel core
-│   │   ├── scheduler/      # Task scheduler
-│   │   ├── memory/         # Memory management
-│   │   ├── ipc/           # Inter-process communication
-│   │   └── drivers/       # Hardware drivers
-│   └── include/            # Header files
-├── tools/                   # Build tools and scripts
-├── tests/                   # Test code
-└── examples/               # Example applications
+├── Makefile                  # Build system with toolchain auto-detection
+├── linker.ld                 # Memory layout for QEMU virt machine
+├── README.md                 # This file
+├── SETUP.md                  # Toolchain install (Windows + macOS)
+├── GUIDE.md                  # Operating principles for the project
+├── BACKLOG.md                # Parked ideas / scope-creep
+├── src/
+│   ├── boot/startup.S        # Reset code: stack, BSS, mtvec, jump to kmain
+│   ├── kernel/main.c         # kmain, banner, trap dispatch, echo loop
+│   ├── kernel/uart.c         # 16550 UART driver + kprintf
+│   └── include/              # types.h, uart.h
+└── docs/
+    ├── learning-roadmap.md   # 10-phase, ~20-month plan at ~6 hrs/wk
+    ├── journal/              # Per-session reflections (the design diary)
+    └── concepts/             # Concept notes — written by me, after I've struggled with the topic
 ```
 
-## 🛠️ Target Hardware
+## License & author
 
-- **Architecture**: RISC-V RV32IMAC (32-bit with Integer, Multiply, Atomic, Compressed extensions)
-- **Target Board**: QEMU virt machine (for development) / SiFive boards
-- **Memory Model**: Bare-metal, no MMU initially
-
-## 📚 Learning Phases
-
-| Phase | Topic | Estimated Time |
-|-------|-------|----------------|
-| 1 | RISC-V Architecture Fundamentals | 2-3 weeks |
-| 2 | Development Environment Setup | 1 week |
-| 3 | Boot Process & Startup Code | 2 weeks |
-| 4 | Basic Kernel & UART Driver | 2 weeks |
-| 5 | Interrupt Handling | 2 weeks |
-| 6 | Memory Management | 3 weeks |
-| 7 | Task Management & Context Switching | 3-4 weeks |
-| 8 | Scheduler Implementation | 3-4 weeks |
-| 9 | IPC Mechanisms | 2-3 weeks |
-| 10 | Advanced Topics & Optimization | 4+ weeks |
-
-**Total Estimated Time: 6-9 months** (part-time, ~10-15 hours/week)
-
-## 🚀 Quick Start
-
-```bash
-# Clone the repository
-git clone https://github.com/KashifSid38/kAsh-OS.git
-
-# Install RISC-V toolchain (see docs/03-development-setup.md)
-
-# Build the OS
-make
-
-# Run in QEMU
-make run
-```
-
-## 📖 Documentation
-
-- [Learning Roadmap](docs/learning-roadmap.md) - Detailed learning plan
-- [RISC-V Architecture](docs/01-riscv-architecture.md) - Architecture reference
-- [RTOS Concepts](docs/02-rtos-concepts.md) - OS theory and concepts
-- [Development Setup](docs/03-development-setup.md) - Environment configuration
-- [MMU & Privilege Modes](docs/04-mmu-and-privilege-modes.md) - Virtual memory and user/kernel separation
-
-## 🔗 Resources
-
-### RISC-V
-- [RISC-V Specifications](https://riscv.org/technical/specifications/)
-- [RISC-V Unprivileged ISA](https://github.com/riscv/riscv-isa-manual)
-- [RISC-V Privileged ISA](https://github.com/riscv/riscv-isa-manual)
-
-### OS Development
-- [OSDev Wiki](https://wiki.osdev.org/)
-- [Writing an OS in Rust (RISC-V)](https://osblog.stephenmarz.com/)
-- [xv6-riscv](https://github.com/mit-pdos/xv6-riscv)
-
-### RTOS
-- [FreeRTOS](https://www.freertos.org/)
-- [Zephyr RTOS](https://www.zephyrproject.org/)
-
-## 📝 License
-
-This project is for educational purposes. MIT License.
-
-## 👤 Author
-
-Learning project by **bitwizebard**
+Personal learning project by Kashif (`KashifSid38`). MIT licensed. No AMD IP, no confidential information; all tooling is open source.

@@ -1,365 +1,195 @@
 # kAsH-OS Learning Roadmap
 
-## 📅 Complete Learning Plan with Time Estimates
+The phased plan for building kAsH-OS and using it to develop systems-engineering judgement. Read `GUIDE.md` for the operating principles that govern *how* I work through these phases.
 
-This document provides a detailed breakdown of the learning journey to build a RISC-V RTOS from scratch.
+## Premise
 
----
+- **Cadence:** ~6 hrs/week (5–8 realistic), two sessions of ~3 hrs each.
+- **Total horizon:** ~20 months to a multitasking QEMU OS with virtual memory, syscalls, userland, simple FS, and SMP. Hardware port deferred — decide on a board after the QEMU OS is solid.
+- Every phase ships a runnable artifact AND at least one journal/retrospective entry. No phase ships only code.
+- Buffer ~30% slack per phase for debugging time. Stuck-on-bugs is the default, not the exception.
 
-## Phase 1: RISC-V Architecture Fundamentals (2-3 weeks)
+## Status (2026-05-16)
 
-### Week 1-2: Core Architecture
-- [ ] **Day 1-3**: RISC-V history and design philosophy
-  - Why RISC-V? Open ISA benefits
-  - Comparison with ARM, x86
-  - Modular extension system (RV32I, M, A, F, D, C)
-
-- [ ] **Day 4-7**: Register architecture
-  - 32 general-purpose registers (x0-x31)
-  - Program Counter (PC)
-  - Special registers (zero, ra, sp, gp, tp, etc.)
-  - ABI naming conventions
-
-- [ ] **Day 8-10**: Instruction formats
-  - R-type, I-type, S-type, B-type, U-type, J-type
-  - Immediate encoding
-  - Instruction encoding/decoding
-
-- [ ] **Day 11-14**: Core instruction set (RV32I)
-  - Arithmetic: ADD, SUB, AND, OR, XOR, SLT
-  - Loads/Stores: LW, SW, LB, SB, LH, SH
-  - Branches: BEQ, BNE, BLT, BGE
-  - Jumps: JAL, JALR
-
-### Week 3: Privilege Architecture
-- [ ] **Day 15-17**: Privilege levels
-  - Machine mode (M-mode) - highest privilege
-  - Supervisor mode (S-mode) - OS kernel
-  - User mode (U-mode) - applications
-  - Privilege level transitions
-
-- [ ] **Day 18-21**: Control and Status Registers (CSRs)
-  - mstatus, mtvec, mepc, mcause
-  - mie, mip (interrupt registers)
-  - CSR instructions: CSRRW, CSRRS, CSRRC
-
-**Deliverables:**
-- [ ] Summary notes on RISC-V architecture
-- [ ] Handwritten register reference card
-- [ ] Understanding of privilege modes
+The repo has working scaffold: boot, UART, banner, trap-handler dispatch, echo loop. The code was AI-scaffolded during an earlier exploration phase; Phase 0 below addresses that honestly. **No phase is "complete" until I can explain every line of its code in my own words without referring to AI** (see `GUIDE.md` for the full definition of done).
 
 ---
 
-## Phase 2: Development Environment Setup (1 week)
+## Phase 0 — Reset & internalize the existing scaffold (2-3 weeks)
 
-### Week 4: Tools Installation
-- [ ] **Day 1-2**: Install RISC-V GNU Toolchain
-  - riscv64-unknown-elf-gcc
-  - riscv64-unknown-elf-gdb
-  - riscv64-unknown-elf-objdump
+Read every line of `Makefile`, `linker.ld`, `src/boot/startup.S`, `src/kernel/main.c`, `src/kernel/uart.c`, `src/include/*.h`. For each non-trivial source file, write a `<file>.notes.md` sibling that explains in my own words what each block does and why each choice was made. When I can write the notes without consulting AI, I own the file.
 
-- [ ] **Day 3-4**: Install QEMU
-  - qemu-system-riscv32
-  - qemu-system-riscv64
-  - Understanding QEMU virt machine
+**Deliverables**
 
-- [ ] **Day 5-7**: Setup development workflow
-  - Makefile creation
-  - GDB debugging setup
-  - VS Code integration
+- `*.notes.md` sibling files for `startup.S`, `main.c`, `uart.c`, `linker.ld`, and `Makefile`.
+- Journal entries (per session) capturing what surprised me and what's still murky.
+- A re-built kernel running in QEMU that I can explain end-to-end, including: what `mstatus` does, what `mtvec` is, why BSS gets cleared, what the linker script's section ordering implies, what each UART register does.
+- Concept note: "What happens between QEMU `-kernel` and my `kmain` running?" in `docs/concepts/`.
 
-**Deliverables:**
-- [ ] Working toolchain
-- [ ] Hello World bare-metal program running in QEMU
-- [ ] Debugging workflow established
+**Why first.** Pretending to start from a green field would re-create the same illusion. Owning what's already there is the only honest starting point.
 
 ---
 
-## Phase 3: Boot Process & Startup Code (2 weeks)
+## Phase 1 — RISC-V deep dive: traps and timers (3-4 weeks)
 
-### Week 5: Understanding Boot Process
-- [ ] **Day 1-3**: RISC-V boot sequence
-  - Reset vector
-  - Boot ROM behavior
-  - Memory map understanding
+Read the RISC-V Privileged Spec sections on traps and CSRs. The current trap handler partially saves caller-saved registers; finish the save/restore correctly and verify with deliberate test exceptions. Set up CLINT timer interrupts via `mtimecmp` / `mtime`. Hook timer ticks into a logged tick counter visible over UART.
 
-- [ ] **Day 4-7**: Linker scripts
-  - Memory regions definition
-  - Section placement (.text, .data, .bss, .rodata)
-  - Stack setup
+**Deliverables**
 
-### Week 6: Startup Assembly
-- [ ] **Day 8-10**: Writing startup.S
-  - Stack pointer initialization
-  - BSS clearing
-  - Global pointer setup
-  - Jump to C main
-
-- [ ] **Day 11-14**: First C code execution
-  - Minimal C runtime setup
-  - Calling C functions from assembly
-  - Return handling
-
-**Deliverables:**
-- [ ] Working linker script
-- [ ] Startup assembly code
-- [ ] Boot to C main() function
+- Trap handler that correctly saves/restores all caller-saved registers and returns cleanly via `mret`.
+- A deliberate divide-by-zero / illegal-instruction test that shows the handler decoding it correctly.
+- CLINT timer firing every ~10 ms, logged.
+- Concept note: "RISC-V trap delivery, in my own words" in `docs/concepts/`.
 
 ---
 
-## Phase 4: Basic Kernel & UART Driver (2 weeks)
+## Phase 2 — Memory management (5-6 weeks)
 
-### Week 7: UART Driver
-- [ ] **Day 1-3**: Understanding UART
-  - UART protocol basics
-  - 16550 UART (QEMU virt)
-  - Memory-mapped I/O
+Big phase. The current code is RV32 with no MMU. Decide whether to switch to RV64 + Sv39 here (recommended — Sv39 is the canonical RISC-V virtual memory and matches xv6) or stay RV32 with PMP only.
 
-- [ ] **Day 4-7**: Implementing UART driver
-  - uart_init()
-  - uart_putc() - character output
-  - uart_getc() - character input
-  - printf() implementation
+Implement a physical page allocator, kernel page tables, basic kmalloc.
 
-### Week 8: Basic Kernel Structure
-- [ ] **Day 8-10**: Kernel organization
-  - kmain() function
-  - Basic kernel initialization sequence
-  - Panic handling
+**Decision point.** RV32 → RV64 transition probably happens here. Document the trade-off in the journal *before* deciding. Consider: how much existing code changes? Does staying RV32 force me to learn fewer real-world OS concepts?
 
-- [ ] **Day 11-14**: Memory layout
-  - Kernel memory map
-  - Stack allocation
-  - Heap area definition
+**Deliverables**
 
-**Deliverables:**
-- [ ] Working UART driver
-- [ ] printf() functionality
-- [ ] Basic kernel that prints to console
+- Physical frame allocator (bitmap or freelist; my choice, explained in journal).
+- If RV64: kernel mapped via Sv39 page tables, identity or higher-half (my choice, explained).
+- If RV32: PMP regions configured to protect kernel code and stack.
+- `kmalloc` + `kfree` (simple first-fit is fine; better algorithms can wait).
+- Concept note on virtual memory translation (or PMP mechanics if I stay RV32).
+
+**Risk.** This phase kills most hobby OSes. If stuck >8 weeks, stop and read xv6's `vm.c` carefully — but only after seriously attempting the design myself.
 
 ---
 
-## Phase 5: Interrupt Handling (2 weeks)
+## Phase 3 — Multitasking (4-5 weeks)
 
-### Week 9: Exception Handling
-- [ ] **Day 1-3**: RISC-V exception model
-  - Synchronous exceptions
-  - Exception causes (mcause)
-  - Exception handling flow
+Kernel threads first with cooperative `yield()`, then preemptive scheduling driven by the timer interrupt from Phase 1. Context-switch in assembly. Two threads visibly time-slicing over UART.
 
-- [ ] **Day 4-7**: Trap handler
-  - trap_vector in assembly
-  - Saving/restoring context
-  - Dispatching to C handlers
+**Deliverables**
 
-### Week 10: Interrupts
-- [ ] **Day 8-10**: External interrupts
-  - PLIC (Platform Level Interrupt Controller)
-  - Interrupt enable/disable
-  - Interrupt priorities
-
-- [ ] **Day 11-14**: Timer interrupts
-  - CLINT (Core Local Interruptor)
-  - mtime, mtimecmp registers
-  - Periodic timer setup
-
-**Deliverables:**
-- [ ] Exception handler framework
-- [ ] Timer interrupt working
-- [ ] Foundation for preemptive scheduling
+- TCB struct (designed by me first, then compared against xv6's `proc` struct in a journal entry).
+- `yield()` working between two threads.
+- Preemptive scheduler triggered by timer interrupt.
+- Two threads printing different patterns interleaved on UART.
 
 ---
 
-## Phase 6: Memory Management (3 weeks)
+## Phase 4 — Synchronization (3-4 weeks)
 
-### Week 11-12: Heap Management
-- [ ] **Day 1-7**: Simple allocator
-  - First-fit allocator
-  - malloc() / free() implementation
-  - Memory fragmentation understanding
+Spinlocks (with correct interrupt-disable semantics for the M-mode / S-mode case), sleep locks, condition variables. Deliberately introduce a race condition and a deadlock; observe the symptoms; fix them; document the experience.
 
-- [ ] **Day 8-14**: Better allocators
-  - Buddy allocator concept
-  - Slab allocator concept
-  - Choose and implement one
+**Deliverables**
 
-### Week 13: Memory Protection (Optional for RTOS)
-- [ ] **Day 15-21**: Physical Memory Protection (PMP)
-  - PMP registers
-  - Region configuration
-  - Access permissions
-
-**Deliverables:**
-- [ ] Working heap allocator
-- [ ] Memory allocation tests
-- [ ] Understanding of memory protection
+- Spinlock implementation with interrupt-disable safety.
+- Sleep lock implementation built on top of the scheduler from Phase 3.
+- Producer-consumer demo using a sleep lock and condition variable.
+- Journal entry: "the race I introduced, what I observed, how I diagnosed it" — this entry is more important than the code.
 
 ---
 
-## Phase 7: Task Management & Context Switching (3-4 weeks)
+## Phase 5 — User mode + syscalls (3-4 weeks)
 
-### Week 14-15: Task Control Block
-- [ ] **Day 1-7**: Task structure
-  - Task Control Block (TCB) design
-  - Task states (Ready, Running, Blocked, Suspended)
-  - Task stack allocation
+Drop to U-mode (this assumes RV64 + S-mode from Phase 2 — revisit if I stayed RV32). Install syscall handler via `ecall`. Implement `copy_to_user` / `copy_from_user`. Run the first userland binary, linked separately and loaded by the kernel.
 
-- [ ] **Day 8-14**: Task creation
-  - task_create() function
-  - Initial context setup
-  - Task list management
+**Deliverables**
 
-### Week 16-17: Context Switching
-- [ ] **Day 15-21**: Context switch implementation
-  - Saving all registers to TCB
-  - Loading registers from new TCB
-  - Stack pointer switching
-
-- [ ] **Day 22-28**: Testing context switch
-  - Two-task switching
-  - Verifying register preservation
-  - Stack integrity checks
-
-**Deliverables:**
-- [ ] TCB implementation
-- [ ] task_create() working
-- [ ] Manual context switching between tasks
+- U-mode entry working.
+- 5–10 basic syscalls: at minimum `write`, `read`, `exit`, `getpid`, `sleep`.
+- A userland "hello world" binary running as a process and exiting cleanly.
 
 ---
 
-## Phase 8: Scheduler Implementation (3-4 weeks)
+## Phase 6 — Processes and IPC (4-5 weeks)
 
-### Week 18-19: Basic Scheduler
-- [ ] **Day 1-7**: Round-robin scheduler
-  - Ready queue implementation
-  - schedule() function
-  - Timer-based preemption
+Process abstraction (vs raw threads). `fork` (or `spawn` if I prefer simpler semantics). Basic IPC via pipes or message queues (not both — pick one and own it). A shell-like launcher that spawns processes and waits for them.
 
-- [ ] **Day 8-14**: Scheduler integration
-  - Hooking scheduler to timer interrupt
-  - Idle task
-  - Task yield
+**Deliverables**
 
-### Week 20-21: Priority Scheduling
-- [ ] **Day 15-21**: Priority-based scheduling
-  - Priority levels
-  - Priority queues
-  - Priority inheritance (optional)
-
-- [ ] **Day 22-28**: Advanced features
-  - Time slicing
-  - Real-time scheduling concepts
-  - Rate Monotonic Scheduling (RMS)
-
-**Deliverables:**
-- [ ] Working preemptive scheduler
-- [ ] Multiple tasks running concurrently
-- [ ] Priority-based task selection
+- Process struct with full lifecycle (create, run, exit, reap).
+- Working pipe OR message queue.
+- Mini-shell that spawns and waits for child processes.
 
 ---
 
-## Phase 9: IPC Mechanisms (2-3 weeks)
+## Phase 7 — Block device + simple filesystem (4-6 weeks)
 
-### Week 22-23: Synchronization Primitives
-- [ ] **Day 1-7**: Mutex implementation
-  - Spinlocks
-  - Blocking mutex
-  - Priority inversion problem
+A virtio-blk driver. Then a simple filesystem — xv6-style is the well-trodden path; an even simpler design is fine if I can defend it. Persistence across QEMU reboots.
 
-- [ ] **Day 8-14**: Semaphores
-  - Counting semaphores
-  - Binary semaphores
-  - Producer-consumer problem
+**Deliverables**
 
-### Week 24: Message Passing
-- [ ] **Day 15-21**: Message queues
-  - Queue data structure
-  - Blocking send/receive
-  - Non-blocking variants
-
-**Deliverables:**
-- [ ] Mutex implementation
-- [ ] Semaphore implementation
-- [ ] Message queue implementation
+- virtio-blk driver reading and writing sectors.
+- File create / read / write / delete.
+- Demo: write a file, reboot QEMU, read it back.
 
 ---
 
-## Phase 10: Advanced Topics (4+ weeks)
+## Phase 8 — SMP (3-4 weeks; optional but high-value)
 
-### Ongoing: Polish and Extend
-- [ ] **Device drivers**: SPI, I2C, GPIO
-- [ ] **File system**: Simple FAT or custom
-- [ ] **Shell**: Command-line interface
-- [ ] **Debugging**: Better debug output, assertions
-- [ ] **Testing**: Unit tests, integration tests
-- [ ] **Documentation**: API documentation
-- [ ] **Real hardware**: Port to physical RISC-V board
+Boot secondary harts, add per-CPU state, set up IPIs. Audit every spinlock from Phase 4 for SMP correctness — this is the moment that latent bugs become visible.
+
+**Deliverables**
+
+- 4 harts running the scheduler.
+- A test that demonstrates a previously-passing single-core lock failing under SMP, then the fix.
 
 ---
 
-## 📊 Time Summary
+## Phase 9 — Hardware port (4-6 weeks; deferred until QEMU OS is solid)
 
-| Phase | Topic | Hours | Calendar Time |
-|-------|-------|-------|---------------|
-| 1 | RISC-V Architecture | 30-45 | 2-3 weeks |
-| 2 | Dev Environment | 10-15 | 1 week |
-| 3 | Boot Process | 20-30 | 2 weeks |
-| 4 | Kernel & UART | 20-30 | 2 weeks |
-| 5 | Interrupts | 20-30 | 2 weeks |
-| 6 | Memory Management | 30-45 | 3 weeks |
-| 7 | Task Management | 40-60 | 3-4 weeks |
-| 8 | Scheduler | 40-60 | 3-4 weeks |
-| 9 | IPC | 25-40 | 2-3 weeks |
-| 10 | Advanced | 50+ | 4+ weeks |
-| **Total** | | **285-415** | **24-30 weeks** |
+Pick a board at decision-time based on what concepts I most want to exercise on real silicon. Candidates: VisionFive 2, HiFive Unmatched (full Sv39 + multi-core), or K210 / ESP32-C3-class (cheaper, M-mode only). Adapt boot path, UART, timer, memory map.
 
-**Assuming 10-15 hours/week: 6-9 months**
+**Deliverables**
+
+- Same OS booting on a real RISC-V board.
+- Journal entry: "what QEMU lied to me about" — the differences I had to discover the hard way.
 
 ---
 
-## 🎯 Milestones
+## Phase 10 — Retrospective + polish (2-3 weeks)
 
-1. **M1**: Boot and print "Hello, RISC-V!" (Week 6)
-2. **M2**: Handle timer interrupts (Week 10)
-3. **M3**: Two tasks switching manually (Week 17)
-4. **M4**: Preemptive multitasking (Week 21)
-5. **M5**: Full RTOS with IPC (Week 24)
+Write the design retrospective. What did I learn? What would I redo? What design choices do I still disagree with? Consider writing up the project as a blog series — strong artifact for the IDP review.
 
----
+**Deliverables**
 
-## 💡 How Cline Can Help
-
-1. **Code Implementation**: Write startup code, drivers, kernel modules
-2. **Debugging**: Help debug assembly and C code issues
-3. **Documentation**: Create detailed notes and explanations
-4. **Code Review**: Review your implementations
-5. **Testing**: Help create test cases
-6. **Explanations**: Deep-dive into any concept
-7. **Architecture Decisions**: Discuss design choices
+- 5–10 page design retrospective in `docs/`.
+- Optional: blog post(s) suitable for sharing.
 
 ---
 
-## 📝 Weekly Workflow
+## Quarterly checkpoints
 
-1. **Study**: Read documentation/tutorials (2-3 hours)
-2. **Implement**: Write code with Cline's help (4-6 hours)
-3. **Debug**: Test and fix issues (2-3 hours)
-4. **Document**: Write notes in docs/ (1-2 hours)
-5. **Commit**: Push to git repository (ongoing)
+Every 3 months, one weekend session for:
+
+1. Re-read all journal entries from the quarter.
+2. Refactor anything that's been bothering me.
+3. Compare current code/design against xv6 for the corresponding subsystem.
+4. Write a 1-page retrospective and commit it to `docs/journal/`.
+
+Quarterly checkpoints are where engineering judgement compounds. Skipping them means shipping more code with less learning.
 
 ---
 
-## 🔄 Progress Tracking
+## Progress tracker (honest)
 
-Update this section as you progress:
+A phase is "completed" only when ALL of the following are true (per `GUIDE.md`):
 
-- [x] Phase 1 Complete - Date: 2026-04-27 (AI-scaffolded: architecture docs, register reference)
-- [x] Phase 2 Complete - Date: 2026-04-27 (AI-scaffolded: Makefile, linker script, QEMU config — see SETUP.md for toolchain install)
-- [x] Phase 3 Complete - Date: 2026-04-27 (AI-scaffolded: startup.S, linker.ld, boot to kmain())
-- [x] Phase 4 Complete - Date: 2026-04-27 (AI-scaffolded: uart.c, kprintf, main.c, memory layout print)
-- [ ] Phase 5 Complete - Date: ____
-- [ ] Phase 6 Complete - Date: ____
-- [ ] Phase 7 Complete - Date: ____
-- [ ] Phase 8 Complete - Date: ____
-- [ ] Phase 9 Complete - Date: ____
-- [ ] Phase 10 Complete - Date: ____
+1. Its deliverables are met.
+2. I can explain every line of its code in my own words.
+3. The journal has at least one entry per work session in the phase.
+4. There is at least one concept note in `docs/concepts/` covering the phase's central idea.
+
+| Phase | Status | Started | Completed | Notes |
+|-------|--------|---------|-----------|-------|
+| 0 — Internalize scaffold | not started | — | — | — |
+| 1 — Traps & timers | not started | — | — | — |
+| 2 — Memory management | not started | — | — | — |
+| 3 — Multitasking | not started | — | — | — |
+| 4 — Synchronization | not started | — | — | — |
+| 5 — U-mode & syscalls | not started | — | — | — |
+| 6 — Processes & IPC | not started | — | — | — |
+| 7 — Block dev & FS | not started | — | — | — |
+| 8 — SMP | not started | — | — | — |
+| 9 — Hardware port | deferred | — | — | — |
+| 10 — Retrospective | not started | — | — | — |
