@@ -19,11 +19,14 @@ The repo has working scaffold: boot, UART, banner, trap-handler dispatch, echo l
 
 Read every line of `Makefile`, `linker.ld`, `src/boot/startup.S`, `src/kernel/main.c`, `src/kernel/uart.c`, `src/include/*.h`. For each non-trivial source file, write a `<file>.notes.md` sibling that explains in my own words what each block does and why each choice was made. When I can write the notes without consulting AI, I own the file.
 
+**Suggested order.** Start with `linker.ld` (needs almost no ISA knowledge — it's about ELF sections, memory layout, and linking). Then write the `risc-v-machine-model.md` concept note as the ISA on-ramp, right before tackling `startup.S` — that's the file that actually needs CSRs, `mstatus`/`mtvec`, the `gp` register, and the calling convention. Then `startup.S`, then `main.c` / `uart.c` (MMIO, which I already know from ARM). Write the ISA note when the code forces the question, not as abstract upfront reading.
+
 **Deliverables**
 
 - `*.notes.md` sibling files for `startup.S`, `main.c`, `uart.c`, `linker.ld`, and `Makefile`.
 - Journal entries (per session) capturing what surprised me and what's still murky.
 - A re-built kernel running in QEMU that I can explain end-to-end, including: what `mstatus` does, what `mtvec` is, why BSS gets cleared, what the linker script's section ordering implies, what each UART register does.
+- Concept note: `risc-v-machine-model.md` — privilege modes, CSRs, and the QEMU virt memory map, in my own words (the ISA on-ramp for `startup.S`).
 - Concept note: "What happens between QEMU `-kernel` and my `kmain` running?" in `docs/concepts/`.
 
 **Why first.** Pretending to start from a green field would re-create the same illusion. Owning what's already there is the only honest starting point.
